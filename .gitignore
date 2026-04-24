@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# macOS
+.DS_Store
+
+# Large raw data files
+data/erm2-nwe9.csv
+data/wvxf-dwi5.csv
+
+# Secrets
+*.env

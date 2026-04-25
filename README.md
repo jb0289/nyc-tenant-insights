@@ -80,8 +80,9 @@ nyc-tenant-insights/
 
 ## Links
 
-- Live Demo: [Google Site link]
-- Pitch Video: [YouTube link]
+- Live App: https://nyc-tenant-insights-5gh64ejvqu9mauzgikwshs.streamlit.app/
+- Zillow Plugin Mockup: https://grand-sprinkles-48b9ea.netlify.app/
+- Pitch Video: https://www.youtube.com/watch?v=4FoYHdaBBC8
 - Slide Deck: [Google Slides link]
 
 ## License & Attribution

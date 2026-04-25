@@ -6,19 +6,19 @@ A Streamlit app that helps renters evaluate Manhattan buildings before signing a
 
 - Search any Manhattan address in the dataset
 - See building complaint count and risk percentile
-- AI-powered tenant summary (powered by Gemini 2.5 Flash)
+- AI-powered tenant summary (powered by Claude claude-sonnet-4-5)
 - Rent trend chart for the building's ZIP code (last 2 years)
 
 ## Setup
 
 1. Install dependencies:
    ```bash
-   pip install streamlit pandas google-genai
+   pip install streamlit pandas anthropic
    ```
 
-2. Set your Gemini API key:
+2. Set your Anthropic API key:
    ```bash
-   export GEMINI_API_KEY=your_key_here
+   export ANTHROPIC_API_KEY=your_key_here
    ```
 
 3. Run the app:

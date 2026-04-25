@@ -52,7 +52,7 @@ st.markdown("""
 with st.sidebar:
     st.markdown("### 🔭 Future Vision")
     st.markdown(
-        '<a href="app/static/zillow_mockup.html" target="_blank" style="display:block; padding:10px 16px; background:#185FA5; color:white; text-align:center; border-radius:8px; text-decoration:none; font-weight:600; margin-bottom:12px;">🌐 View as Zillow Plugin →</a>',
+        '<a href="YOUR_NETLIFY_URL/zillow_mockup.html" target="_blank" style="display:block; padding:10px 16px; background:#185FA5; color:white; text-align:center; border-radius:8px; text-decoration:none; font-weight:600; margin-bottom:12px;">🌐 View as Zillow Plugin →</a>',
         unsafe_allow_html=True
     )
     st.caption("This prototype could ship as a Chrome extension that overlays directly on Zillow listings.")

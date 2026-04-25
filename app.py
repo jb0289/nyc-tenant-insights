@@ -27,12 +27,48 @@ def load_data():
 # Load all datasets
 zip_data, building_data, demo_addresses, zori_data = load_data()
 
-# Page title and description
-st.title("🏙️ NYC Tenant Insights")
-st.markdown("*A Zillow plugin prototype — see the real NYC 311 complaint data before you sign a lease.*")
-st.divider()
-st.header("🤖 Tenant Assistant")
-st.caption("Ask about any Manhattan building in our dataset")
+# Custom CSS
+st.markdown("""
+<style>
+.main-header {
+    background: linear-gradient(135deg, #185FA5 0%, #0C447C 100%);
+    padding: 24px 28px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    color: white;
+}
+.main-header h1 { margin: 0; font-size: 28px; font-weight: 700; }
+.main-header p { margin: 6px 0 0; font-size: 15px; opacity: 0.92; }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="main-header">
+    <h1>🏙️ NYC Tenant Insights</h1>
+    <p>Real NYC 311 + HPD violation data, graded A through F. See what the city already knows before you sign the lease.</p>
+</div>
+""", unsafe_allow_html=True)
+
+with st.sidebar:
+    st.markdown("### 🔭 Future Vision")
+    st.markdown(
+        '<a href="app/static/zillow_mockup.html" target="_blank" style="display:block; padding:10px 16px; background:#185FA5; color:white; text-align:center; border-radius:8px; text-decoration:none; font-weight:600; margin-bottom:12px;">🌐 View as Zillow Plugin →</a>',
+        unsafe_allow_html=True
+    )
+    st.caption("This prototype could ship as a Chrome extension that overlays directly on Zillow listings.")
+    try:
+        st.image("mockup_preview.png", caption="Tenant Insights as a Zillow plugin", use_container_width=True)
+    except:
+        st.info("Mockup screenshot will appear here.")
+    st.markdown("---")
+    st.markdown("### 📊 What you are seeing")
+    st.caption("Every Manhattan building with 3+ housing complaints is graded A-F based on complaint volume, violation severity, and unresolved issues.")
+    st.markdown("---")
+    st.markdown("### 🛟 For tenants in distress")
+    st.caption("D and F grade buildings show resources for renters who cannot move — 311, free legal aid, and tenant organizing.")
+
+st.markdown("### 🤖 Tenant Assistant")
+st.caption("Pick a Manhattan building to get a full quality report")
 
 # User input
 user_query = st.selectbox("Select an address:", options=[""] + demo_addresses["display"].tolist())
@@ -176,13 +212,21 @@ Keep it simple and readable.
             man_avg_complaints = building_data['complaint_count'].mean()
             man_avg_violations = building_data.get('violation_count', pd.Series([0])).mean()
             
-            comparison_df = pd.DataFrame({
-                'Category': ['311 Complaints', 'HPD Violations'],
-                'This Building': [int(b['complaint_count']), int(b.get('violation_count', 0))],
-                f"ZIP {b['zip_code']} Avg": [round(zip_avg_complaints, 1), round(zip_avg_violations, 1)],
-                'Manhattan Avg': [round(man_avg_complaints, 1), round(man_avg_violations, 1)]
-            }).set_index('Category')
-            st.bar_chart(comparison_df)
+            cc1, cc2 = st.columns(2)
+            with cc1:
+                st.markdown("**311 Complaints**")
+                comp_df = pd.DataFrame({
+                    'Source': ['This Building', f"ZIP {b['zip_code']} Avg", 'Manhattan Avg'],
+                    'Count': [int(b['complaint_count']), round(zip_avg_complaints, 1), round(man_avg_complaints, 1)]
+                }).set_index('Source')
+                st.bar_chart(comp_df, horizontal=True, color='#cf222e')
+            with cc2:
+                st.markdown("**HPD Violations**")
+                viol_df = pd.DataFrame({
+                    'Source': ['This Building', f"ZIP {b['zip_code']} Avg", 'Manhattan Avg'],
+                    'Count': [int(b.get('violation_count', 0)), round(zip_avg_violations, 1), round(man_avg_violations, 1)]
+                }).set_index('Source')
+                st.bar_chart(viol_df, horizontal=True, color='#f57c00')
             
             st.divider()
             
@@ -235,6 +279,23 @@ Peeling paint in units without children under 6, missing required notices (lead 
         except Exception as e:
             with st.chat_message("assistant"):
                 st.warning("AI service is temporarily unavailable. Data below is still accurate — please try again in a moment.")
+        
+        # Tenant resources for D/F grade buildings
+        if b.get('grade', 'C') in ['D', 'F']:
+            st.markdown("---")
+            st.markdown("""
+            <div style="background:#fff8e1; border-left:6px solid #f9a825; padding:16px 20px; border-radius:8px; margin:12px 0;">
+                <div style="font-size:18px; font-weight:700; color:#6d4c00; margin-bottom:10px;">🛟 Already living here? Here's what you can do:</div>
+                <div style="font-size:14px; color:#6d4c00; line-height:1.8;">
+                    📞 <b>HPD Emergency Repairs:</b> Call <a href="tel:2128636300" style="color:#6d4c00;">212-863-6300</a> for no heat, no hot water, or other urgent issues<br>
+                    📋 <b>File a 311 Complaint:</b> <a href="https://portal.311.nyc.gov/" target="_blank" style="color:#6d4c00;">portal.311.nyc.gov</a> — every complaint becomes part of the public record<br>
+                    ⚖️ <b>Free Legal Help:</b> <a href="https://www.nyc.gov/site/hra/help/legal-services-for-tenants.page" target="_blank" style="color:#6d4c00;">NYC Right to Counsel</a> provides free housing court representation for eligible tenants<br>
+                    🤝 <b>Connect with Neighbors:</b> <a href="https://www.metcouncilonhousing.org/" target="_blank" style="color:#6d4c00;">Met Council on Housing</a> helps tenants organize and form tenant associations<br>
+                    📚 <b>Know Your Rights:</b> <a href="https://www.nyc.gov/site/hpd/services-and-information/tenant-resources.page" target="_blank" style="color:#6d4c00;">HPD Tenant Resources</a>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
 
         # Show rent chart (if available)
         if zip_info is not None:

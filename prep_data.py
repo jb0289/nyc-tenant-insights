@@ -66,7 +66,7 @@ building = complaints.groupby(['incident_address_norm', 'incident_zip']).agg(
 building = building.rename(columns={'incident_address_norm': 'address', 'incident_zip': 'zip_code'})
 building['last_complaint_date'] = building['last_complaint_date'].dt.strftime('%Y-%m-%d')
 building['open_complaint_ratio'] = (building['open_complaints'] / building['complaint_count']).round(2)
-building = building[building['complaint_count'] >= 3]
+# Filter removed
 
 # ===== Load HPD violations with class =====
 violations = pd.read_csv('data/wvxf-dwi5.csv')
@@ -97,11 +97,22 @@ open_counts = open_v.groupby(['address_norm', 'zip']).size().reset_index(name='o
 open_counts = open_counts.rename(columns={'address_norm': 'address', 'zip': 'zip_code'})
 
 # Merge
-building = building.merge(v_counts, on=['address', 'zip_code'], how='left')
+building = building.merge(v_counts, on=['address', 'zip_code'], how='outer')
 building = building.merge(open_counts, on=['address', 'zip_code'], how='left')
 for col in ['violation_count', 'weighted_violations', 'class_a', 'class_b', 'class_c', 'open_violations']:
     building[col] = building[col].fillna(0).astype(int)
 building['last_violation_date'] = building['last_violation_date'].fillna('N/A')
+
+# Fill complaint-side columns for violation-only buildings (NaN -> 0)
+for col in ['complaint_count', 'open_complaints']:
+    if col in building.columns:
+        building[col] = building[col].fillna(0).astype(int)
+if 'open_complaint_ratio' in building.columns:
+    building['open_complaint_ratio'] = building['open_complaint_ratio'].fillna(0)
+if 'last_complaint_date' in building.columns:
+    building['last_complaint_date'] = building['last_complaint_date'].fillna('N/A')
+if 'top_complaint' in building.columns:
+    building['top_complaint'] = building['top_complaint'].fillna('No complaints')
 
 # ===== Composite quality score =====
 building['quality_score_raw'] = (

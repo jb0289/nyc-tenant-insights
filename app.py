@@ -1,5 +1,6 @@
 # Import libraries
 import streamlit as st
+from nyc_api import check_nyc_live
 import pandas as pd
 import anthropic
 import os
@@ -71,7 +72,101 @@ st.markdown("### 🤖 Tenant Assistant")
 st.caption("Pick a Manhattan building to get a full quality report")
 
 # User input
-user_query = st.selectbox("Select an address:", options=[""] + demo_addresses["display"].tolist())
+from rapidfuzz import process
+
+user_input = st.text_input("Enter a Manhattan address:", placeholder="e.g. 225 Central Park N, 246 E 53, 43 Grove St")
+
+user_query = ""
+if user_input:
+    import re as re2
+    from rapidfuzz import fuzz
+    user_upper = user_input.upper().strip()
+
+    # Normalize
+    normalized = user_upper
+    normalized = re2.sub(r'\bWEST\b', 'W', normalized)
+    normalized = re2.sub(r'\bEAST\b', 'E', normalized)
+    normalized = re2.sub(r'\bNORTH\b', 'N', normalized)
+    normalized = re2.sub(r'\bSOUTH\b', 'S', normalized)
+    normalized = re2.sub(r'\bSTREET\b', 'ST', normalized)
+    normalized = re2.sub(r'\bAVENUE\b', 'AVE', normalized)
+    normalized = re2.sub(r'\bBOULEVARD\b', 'BLVD', normalized)
+    normalized = re2.sub(r'(\d+)(ST|ND|RD|TH)\b', r'\1', normalized)
+    normalized = re2.sub(r'\s+', ' ', normalized).strip()
+
+    parts = normalized.split()
+
+    if len(parts) < 2:
+        st.info("Try a more complete address (e.g. \'149 W 80 St\')")
+        user_query = ""
+    else:
+        bldg_num = parts[0]
+        # Extract input street name (everything after building number, minus direction/suffix tokens)
+        directions = {'W', 'E', 'N', 'S'}
+        suffixes = {'ST', 'AVE', 'BLVD', 'PL', 'RD', 'DR', 'CT', 'WAY', 'TER', 'PKWY'}
+        input_street_tokens = [p for p in parts[1:] if p not in directions and p not in suffixes and not p.isdigit()]
+        input_street = ' '.join(input_street_tokens)
+
+        candidates = [a for a in building_data["address"].tolist() if a.startswith(bldg_num + " ")]
+
+        if not candidates:
+            with st.spinner(f"Checking NYC Open Data live for {user_input}..."):
+                live = check_nyc_live(user_input)
+            if live is None:
+                st.warning(f"Couldn't parse address. Try: 149 W 80 St")
+            elif live["complaints"] == 0 and live["violations"] == 0:
+                st.success(f"**{user_input.upper()} — Clean Record (Grade A equivalent)**")
+                st.caption(f"Verified live against NYC Open Data: zero 311 complaints and zero HPD violations on file since 2024-01-01.")
+            else:
+                st.warning(f"**{user_input.upper()}** — found {live['complaints']} complaints and {live['violations']} violations on NYC Open Data, but address didn't match our normalized dataset. Check [HPD Online](https://hpdonline.nyc.gov/).")
+            user_query = ""
+        else:
+            # Filter by direction
+            input_dir = next((p for p in parts[1:] if p in directions), None)
+            if input_dir:
+                candidates = [c for c in candidates if any(t == input_dir for t in c.split())]
+
+            # Filter by exact street number match
+            input_nums = re2.findall(r'\d+', normalized)
+            if len(input_nums) >= 2:
+                street_num = input_nums[1]
+                candidates = [c for c in candidates if street_num in re2.findall(r'\d+', c)]
+
+            # If we have an alpha street name, require it to fuzzy-match the candidate street
+            if input_street and candidates:
+                strict_matches = []
+                for c in candidates:
+                    c_tokens = [t for t in c.split() if t not in directions and t not in suffixes and not t.isdigit() and t != bldg_num]
+                    c_street = ' '.join(c_tokens)
+                    if c_street and fuzz.token_sort_ratio(input_street, c_street) >= 70:
+                        strict_matches.append(c)
+                candidates = strict_matches
+
+            if not candidates:
+                with st.spinner(f"Checking NYC Open Data live for {user_input}..."):
+                    live = check_nyc_live(user_input)
+                if live is None:
+                    st.warning(f"Couldn't parse address. Try: 149 W 80 St")
+                elif live["complaints"] == 0 and live["violations"] == 0:
+                    st.success(f"**{user_input.upper()} — Clean Record (Grade A equivalent)**")
+                    st.caption(f"Verified live against NYC Open Data: zero 311 complaints and zero HPD violations on file since 2024-01-01.")
+                else:
+                    st.warning(f"**{user_input.upper()}** — found {live['complaints']} complaints and {live['violations']} violations on NYC Open Data, but address didn't match our normalized dataset. Check [HPD Online](https://hpdonline.nyc.gov/).")
+                user_query = ""
+            else:
+                matches = process.extract(normalized, candidates, limit=5)
+                if matches and matches[0][1] >= 75:
+                    user_query = matches[0][0]
+                    st.caption(f"📍 Matched: **{user_query}**")
+                elif matches:
+                    suggestions = [m[0] for m in matches if m[1] >= 50]
+                    if suggestions:
+                        user_query = st.selectbox("Did you mean:", [""] + suggestions)
+                    else:
+                        st.info(f"**\'{user_input}\' isn\'t in our dataset.**")
+                        user_query = ""
+                else:
+                    user_query = ""
 
 if user_query:
     query = user_query.split(",")[0].strip().upper()

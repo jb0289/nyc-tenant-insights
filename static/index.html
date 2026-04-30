@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NYC Tenant Insights — Zillow Plugin Preview</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f3; color: #1a1a1a; }
+  .container { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 28px; font-weight: 700; margin: 0 0 4px; }
+  .subtitle { font-size: 15px; color: #666; margin: 0 0 24px; }
+  .controls { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }
+  .controls label { font-size: 13px; color: #666; font-weight: 600; }
+  select { padding: 10px 14px; font-size: 14px; border: 1px solid #ddd; border-radius: 8px; background: white; flex: 1; max-width: 420px; cursor: pointer; }
+  .grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: white; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .zillow-header { padding: 12px 18px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px; }
+  .zillow-logo { font-weight: 800; font-size: 20px; color: #006AFF; letter-spacing: -0.5px; }
+  .listing-img { height: 320px; background: #1a1a1a; background-size: contain; background-position: center; background-repeat: no-repeat; }
+  .listing-body { padding: 18px 20px; }
+  .price-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .price { font-size: 26px; font-weight: 700; }
+  .specs { display: flex; gap: 18px; font-size: 14px; color: #555; margin-bottom: 16px; }
+  .specs strong { color: #1a1a1a; font-weight: 600; }
+  .btn-primary { padding: 10px 16px; background: #006AFF; color: white; border: 0; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; flex: 1; }
+  .btn-secondary { padding: 10px 16px; background: white; color: #006AFF; border: 1px solid #006AFF; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .plugin { border: 2px solid #185FA5; }
+  .plugin-header { padding: 10px 14px; background: #E6F1FB; display: flex; align-items: center; gap: 8px; }
+  .plugin-logo { width: 24px; height: 24px; border-radius: 6px; background: #185FA5; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .plugin-title { font-size: 13px; font-weight: 700; color: #0C447C; }
+  .plugin-tag { margin-left: auto; font-size: 10px; color: #185FA5; opacity: 0.8; font-weight: 600; letter-spacing: 0.5px; }
+  .plugin-body { padding: 16px 18px; }
+  .grade-row { display: flex; gap: 12px; align-items: stretch; margin-bottom: 14px; }
+  .grade-card { flex: 0 0 110px; border-radius: 10px; padding: 14px; text-align: center; color: white; }
+  .grade-label { font-size: 10px; opacity: 0.9; letter-spacing: 0.5px; font-weight: 600; }
+  .grade-letter { font-size: 56px; font-weight: 800; line-height: 1.1; margin: 2px 0; }
+  .grade-score { font-size: 11px; opacity: 0.9; }
+  .grade-side { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .grade-side-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+  .grade-side-row:last-child { border-bottom: 0; }
+  .grade-side-row span:first-child { color: #666; }
+  .grade-side-row span:last-child { font-weight: 600; }
+  .verdict { padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; border-left: 5px solid; }
+  .verdict-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .verdict-headline { font-size: 16px; font-weight: 700; }
+  .verdict-pill { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 12px; background: white; }
+  .verdict-sub { font-size: 12px; opacity: 0.9; }
+  .severity { background: #f8f8f6; border-radius: 8px; padding: 12px 14px; }
+  .severity-title { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600; }
+  .severity-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; }
+  .severity-row .label { color: #555; }
+  .severity-row .count { font-weight: 700; min-width: 28px; text-align: right; }
+  .sev-c { color: #c62828; }
+  .sev-b { color: #f57c00; }
+  .sev-a { color: #888; }
+  .footer { font-size: 12px; color: #888; margin: 20px 0 0; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>NYC Tenant Insights</h1>
+  <p class="subtitle">Zillow plugin preview — see real NYC 311 + HPD data on every listing</p>
+
+  <div class="controls">
+    <label>Listing:</label>
+    <select id="addr-select">
+      <option value="225_cpn">225 Central Park North, NY 10026</option>
+      <option value="43_grove">43 Grove St, NY 10014</option>
+      <option value="610_w145">610 W 145 St, NY 10031</option>
+      <option value="246_e53">246 E 53 St, NY 10022</option>
+    </select>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="zillow-header">
+        <span class="zillow-logo">Zillow</span>
+        <span style="font-size: 12px; color: #999;">For Rent · Manhattan</span>
+      </div>
+      <div id="listing-img" class="listing-img" style="background-image: url('images/building_225cpn.jpg');"></div>
+      <div class="listing-body">
+        <div class="price-row">
+          <span id="listing-price" class="price">$3,200/mo</span>
+          <span style="font-size: 12px; color: #999;">For rent</span>
+        </div>
+        <p id="listing-address" style="margin: 0 0 14px; font-size: 14px;">225 Central Park North, Apt 4B, New York, NY 10026</p>
+        <div class="specs">
+          <span><strong>1</strong> bd</span>
+          <span><strong>1</strong> ba</span>
+          <span><strong>650</strong> sqft</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-primary">Request a tour</button>
+          <button class="btn-secondary">Save</button>
+        </div>
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee;">
+          <div style="font-size: 16px; font-weight: 700; margin-bottom: 10px;">Neighborhood</div>
+          <img id="neighborhood-map" src="images/map_225cpn.jpg" alt="Neighborhood map" style="width: 100%; border-radius: 8px; display: block;"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="card plugin">
+      <div class="plugin-header">
+        <div class="plugin-logo">TI</div>
+        <span class="plugin-title">Tenant Insights</span>
+        <span class="plugin-tag">CHROME PLUGIN</span>
+      </div>
+      <div class="plugin-body">
+        <div class="grade-row">
+          <div id="grade-card" class="grade-card" style="background: #cf222e;">
+            <div class="grade-label">BUILDING GRADE</div>
+            <div id="grade-letter" class="grade-letter">F</div>
+            <div id="grade-score" class="grade-score">0/100</div>
+          </div>
+          <div class="grade-side">
+            <div class="grade-side-row"><span>311 Complaints</span><span id="m-complaints">451</span></div>
+            <div class="grade-side-row"><span>HPD Violations</span><span id="m-violations">7</span></div>
+            <div class="grade-side-row"><span>Open Issues</span><span id="m-open">15</span></div>
+            <div class="grade-side-row"><span>Last Complaint</span><span id="m-last">Apr 2026</span></div>
+          </div>
+        </div>
+
+        <div id="verdict" class="verdict" style="background: #fdecea; border-color: #c62828; color: #8b1c1c;">
+          <div class="verdict-row">
+            <div id="verdict-headline" class="verdict-headline">🚩 AVOID</div>
+            <div id="verdict-pill" class="verdict-pill" style="color: #8b1c1c; border: 1px solid #c62828;">TOP ISSUE: HEAT/HOT WATER</div>
+          </div>
+          <div id="verdict-sub" class="verdict-sub">Severe and ongoing problems reported by tenants.</div>
+        </div>
+
+        <div class="severity">
+          <div class="severity-title">Violation Severity</div>
+          <div class="severity-row"><span class="label sev-c">Class C (Hazardous)</span><span id="sev-c" class="count sev-c">3</span></div>
+          <div class="severity-row"><span class="label sev-b">Class B (Serious)</span><span id="sev-b" class="count sev-b">2</span></div>
+          <div class="severity-row"><span class="label sev-a">Class A (Minor)</span><span id="sev-a" class="count sev-a">2</span></div>
+        </div>
+
+        <div style="background: #f8f8f6; border-radius: 8px; padding: 12px 14px; margin-top: 12px;">
+          <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;">311 Complaints — Comparison</div>
+          <svg id="compare-chart" width="100%" height="90" viewBox="0 0 320 90" style="display: block;"></svg>
+        </div>
+
+        <div style="background: #f8f8f6; border-radius: 8px; padding: 12px 14px; margin-top: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Complaints — Last 12 Months</div>
+            <div id="spark-total" style="font-size: 11px; color: #666;">Total: 0</div>
+          </div>
+          <svg id="spark-chart" width="100%" height="40" viewBox="0 0 320 40" style="display: block;"></svg>
+        </div>
+
+        <div style="background: #f0f4f8; border-radius: 8px; padding: 12px 14px; margin-top: 12px;">
+          <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 600;">🤖 AI Summary</div>
+          <div id="ai-text" style="font-size: 12px; line-height: 1.55; color: #333;">Loading...</div>
+        </div>
+
+        <div id="tenant-resources" style="display:none; background:#fff8e1; border-left:5px solid #f9a825; padding:12px 14px; border-radius:8px; margin-top: 12px;">
+          <div style="font-size:13px; font-weight:700; color:#6d4c00; margin-bottom:8px;">🛟 Already living here? You have options:</div>
+          <div style="font-size:11px; color:#6d4c00; line-height:1.7;">
+            📞 <b>HPD Emergency:</b> 212-863-6300<br>
+            📋 <b>File 311:</b> portal.311.nyc.gov<br>
+            ⚖️ <b>Free legal help:</b> NYC Right to Counsel<br>
+            🤝 <b>Tenant organizing:</b> Met Council on Housing
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer">Prototype · Data: NYC 311 (HPD, 2025) + HPD Violations + Zillow ZORI</p>
+</div>
+
+<script>
+  const data = {
+    "225_cpn": { img: "images/building_225cpn.jpg", map: "images/map_225cpn.jpg", addr: "225 Central Park North, Apt 4B, New York, NY 10026", price: "$3,200/mo", bd: 1, ba: 1, sqft: 650, grade: "F", gradeBg: "#cf222e", score: "0/100", complaints: 451, violations: 7, open: 15, last: "Apr 2026", verdictHeadline: "🚩 AVOID", verdictSub: "Severe and ongoing problems reported by tenants.", verdictBg: "#fdecea", verdictBorder: "#c62828", verdictText: "#8b1c1c", topIssue: "TOP ISSUE: HEAT/HOT WATER", sevC: 3, sevB: 2, sevA: 2, compare: [451, 58, 12], spark: [28, 35, 42, 31, 38, 45, 52, 48, 55, 41, 47, 51], ai: "This building has an F grade with 451 total 311 complaints and 7 HPD violations, including 2 Class C hazardous violations. The most frequent complaint is about heat and hot water issues, with the most recent complaint filed just recently in April 2026. Given the high complaint volume, open violations, and serious safety issues, you should carefully consider whether this building meets your standards before renting here at $3,200/month." },
+    "43_grove": { img: "images/building_43grove.jpg", map: "images/map_43grove.jpg", addr: "43 Grove St, Apt 2A, New York, NY 10014", price: "$5,400/mo", bd: 1, ba: 1, sqft: 580, grade: "B", gradeBg: "#5a9b2f", score: "78/100", complaints: 3, violations: 1, open: 1, last: "Apr 2026", verdictHeadline: "✅ REASONABLE", verdictSub: "Some minor issues, generally well-maintained.", verdictBg: "#e8f5ec", verdictBorder: "#2e7d32", verdictText: "#1b5e20", topIssue: "TOP ISSUE: HEAT/HOT WATER", sevC: 0, sevB: 0, sevA: 1, compare: [3, 22, 12], spark: [0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0], ai: "This building has a B grade with relatively few issues on record - 3 total 311 complaints and 1 HPD violation, with 1 currently open. The main concern is heat/hot water complaints, with the most recent complaint filed in April 2026, which is something you will want to ask the landlord about before signing a lease." },
+    "610_w145": { img: "images/building_610w145.jpg", map: "images/map_610w145.jpg", addr: "610 W 145 St, Apt 3R, New York, NY 10031", price: "$2,750/mo", bd: 1, ba: 1, sqft: 620, grade: "F", gradeBg: "#cf222e", score: "5/100", complaints: 222, violations: 41, open: 8, last: "Apr 2026", verdictHeadline: "🚩 AVOID", verdictSub: "Major complaint volume and active violations on file.", verdictBg: "#fdecea", verdictBorder: "#c62828", verdictText: "#8b1c1c", topIssue: "TOP ISSUE: HEAT/HOT WATER", sevC: 14, sevB: 19, sevA: 8, compare: [222, 64, 12], spark: [12, 18, 22, 15, 19, 21, 28, 24, 31, 19, 22, 25], ai: "This building has an F grade with 222 total 311 complaints and 14 HPD violations, including 9 Class C hazardous violations which are the most serious type. The top complaint is about heat and hot water issues, with the most recent complaint filed just this month in April 2026." },
+    "246_e53": { img: "images/building_246e53.jpg", map: "images/map_246e53.jpg", addr: "246 E 53 St, Apt 7C, New York, NY 10022", price: "$4,800/mo", bd: 2, ba: 1, sqft: 820, grade: "A", gradeBg: "#1a7f37", score: "92/100", complaints: 4, violations: 1, open: 0, last: "Feb 2026", verdictHeadline: "✅ GOOD CHOICE", verdictSub: "Few complaints, well-managed building.", verdictBg: "#e8f5ec", verdictBorder: "#2e7d32", verdictText: "#1b5e20", topIssue: "TOP ISSUE: DOOR/WINDOW", sevC: 0, sevB: 1, sevA: 0, compare: [4, 18, 12], spark: [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1], ai: "This building has an A grade with a relatively clean record - just 4 total 311 complaints and 1 HPD violation, with no currently open issues. The main complaint type has been heat/hot water, though all issues appear resolved. At $4,800/month, this property shows better maintenance history than many buildings in the area." }
+  };
+
+  const sel = document.getElementById('addr-select');
+  function update() {
+    const d = data[sel.value];
+    document.getElementById('listing-img').style.backgroundImage = "url('" + d.img + "')";
+    document.getElementById('listing-address').textContent = d.addr;
+    document.getElementById('listing-price').textContent = d.price;
+    document.querySelectorAll('.specs span')[0].innerHTML = '<strong>' + d.bd + '</strong> bd';
+    document.querySelectorAll('.specs span')[1].innerHTML = '<strong>' + d.ba + '</strong> ba';
+    document.querySelectorAll('.specs span')[2].innerHTML = '<strong>' + d.sqft + '</strong> sqft';
+    document.getElementById('grade-card').style.background = d.gradeBg;
+    document.getElementById('grade-letter').textContent = d.grade;
+    document.getElementById('grade-score').textContent = d.score;
+    document.getElementById('m-complaints').textContent = d.complaints;
+    document.getElementById('m-violations').textContent = d.violations;
+    document.getElementById('m-open').textContent = d.open;
+    document.getElementById('m-last').textContent = d.last;
+    const v = document.getElementById('verdict');
+    v.style.background = d.verdictBg;
+    v.style.borderColor = d.verdictBorder;
+    v.style.color = d.verdictText;
+    document.getElementById('verdict-headline').textContent = d.verdictHeadline;
+    document.getElementById('verdict-sub').textContent = d.verdictSub;
+    const pill = document.getElementById('verdict-pill');
+    pill.textContent = d.topIssue;
+    pill.style.color = d.verdictText;
+    pill.style.borderColor = d.verdictBorder;
+    document.getElementById('sev-c').textContent = d.sevC;
+    document.getElementById('sev-b').textContent = d.sevB;
+    document.getElementById('sev-a').textContent = d.sevA;
+
+    const compareSvg = document.getElementById('compare-chart');
+    const labels = ['This Bldg', 'ZIP Avg', 'Manhattan Avg'];
+    const colors = [d.gradeBg, '#888', '#bbb'];
+    const maxVal = Math.max(...d.compare, 1);
+    let barsHtml = '';
+    d.compare.forEach((val, i) => {
+      const bw = (val / maxVal) * 180;
+      const y = 12 + i * 26;
+      barsHtml += '<text x="0" y="' + (y + 9) + '" font-size="11" fill="#555">' + labels[i] + '</text>';
+      barsHtml += '<rect x="100" y="' + y + '" width="' + bw + '" height="14" fill="' + colors[i] + '" rx="2"/>';
+      barsHtml += '<text x="' + (105 + bw) + '" y="' + (y + 11) + '" font-size="11" fill="#333" font-weight="600">' + val + '</text>';
+    });
+    compareSvg.innerHTML = barsHtml;
+
+    const sparkSvg = document.getElementById('spark-chart');
+    const sparkMax = Math.max(...d.spark, 1);
+    const sparkW = 320, sparkH = 40, padding = 4;
+    const stepX = (sparkW - padding * 2) / (d.spark.length - 1);
+    const pts = d.spark.map((val, i) => {
+      const x = padding + i * stepX;
+      const y = sparkH - padding - (val / sparkMax) * (sparkH - padding * 2);
+      return x + ',' + y;
+    }).join(' ');
+    const areaPts = padding + ',' + (sparkH - padding) + ' ' + pts + ' ' + (padding + (d.spark.length - 1) * stepX) + ',' + (sparkH - padding);
+    sparkSvg.innerHTML =
+      '<polygon points="' + areaPts + '" fill="' + d.gradeBg + '" opacity="0.15"/>' +
+      '<polyline points="' + pts + '" fill="none" stroke="' + d.gradeBg + '" stroke-width="2"/>' +
+      d.spark.map((val, i) => {
+        const x = padding + i * stepX;
+        const y = sparkH - padding - (val / sparkMax) * (sparkH - padding * 2);
+        return '<circle cx="' + x + '" cy="' + y + '" r="2" fill="' + d.gradeBg + '"/>';
+      }).join('');
+    document.getElementById('spark-total').textContent = 'Total: ' + d.spark.reduce((a,b) => a+b, 0);
+
+    document.getElementById('neighborhood-map').src = d.map;
+    document.getElementById('ai-text').textContent = d.ai;
+    document.getElementById('tenant-resources').style.display = (d.grade === 'F' || d.grade === 'D') ? 'block' : 'none';
+  }
+  sel.addEventListener('change', update);
+  update();
+</script>
+</body>
+</html>

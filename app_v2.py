@@ -238,6 +238,18 @@ Keep it simple and readable.
             # Address header
             st.subheader(f"📍 {b['address']}, NY {b['zip_code']}")
 
+            # Google Street View building photo
+            import os as _os
+            sv_key = _os.getenv("GOOGLE_MAPS_API_KEY", "") or st.secrets.get("GOOGLE_MAPS_API_KEY", "")
+            lat = b.get('latitude')
+            lng = b.get('longitude')
+            if sv_key and pd.notna(lat) and pd.notna(lng):
+                sv_url = f"https://maps.googleapis.com/maps/api/streetview?size=800x350&location={lat},{lng}&fov=80&pitch=0&source=outdoor&key={sv_key}"
+                st.markdown(
+                    f"<img src='{sv_url}' style='width:100%; border-radius:12px; margin:8px 0 12px; max-height:350px; object-fit:cover;' />",
+                    unsafe_allow_html=True
+                )
+
             # Building specs (PLUTO data) — front and center
             specs_parts = []
             year = b.get('yearbuilt')
